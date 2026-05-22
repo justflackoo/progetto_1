@@ -70,9 +70,25 @@ class Fattura{
 
   }
 
-  function update(){
+  //Ha senso aggiornare solo lo stato
+  function update() {
+    $query = "UPDATE " . $this->table_name . "
+              SET stato = :stato
+              WHERE id_fattura = :id_fattura";
 
-  }
+    $stmt = $this->conn->prepare($query);
+
+    // Sanificazione
+    $this->stato = (int)$this->stato;
+    $this->id_fattura = htmlspecialchars(strip_tags($this->id_fattura));
+
+    $stmt->bindParam(":stato", $this->stato);
+    $stmt->bindParam(":id_fattura", $this->id_fattura);
+
+    return $stmt->execute();
+}
+
+  
 
 }
 
