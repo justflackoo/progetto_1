@@ -38,7 +38,8 @@ if($num > 0){ //Se ci sono elementi entro in questo blocco
                           "nome_cliente" => $nome,
                           "cognome_cliente" => $cognome,
                           "data_acquisto" => $data_acquisto, 
-                          "totale" => $totale
+                          "totale" => $totale,
+                          "stato" => Fattura::getStatoLabel($stato) // Chiamata al metodo del modello
                       );
 
 

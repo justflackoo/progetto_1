@@ -9,26 +9,38 @@ class Fattura{
     public $id_cliente;
     public $data_acquisto;
     public $totale;
+    public $stato;
+
+    // Dizionario per il mapping degli stati di una fattura (in futuro potrei ampliarlo)
+    public static $stati_label = [
+        1 => "BLOCCATA",
+        2 => "IN ATTESA",
+        3 => "SPEDITO"
+    ];
 
     public function __construct($db){
     $this->conn = $db;}
 
-   function create(){
-      $query = "INSERT INTO " 
-      .$this->table_name . 
-      "   SET id_cliente =:id_cliente,
-          data_acquisto =:data_acquisto,
-          totale =:totale";
+    /*se l'ID passato non esiste nell'array restituisce la stringa di default "SCONOSCIUTO" */
+    public static function getStatoLabel($id) {
+    return self::$stati_label[$id] ?? "SCONOSCIUTO";
+}
 
-    $stmt = $this->conn->prepare($query);
+   function create(){
+      $query = "INSERT INTO "  .$this->table_name . "   
+      SET id_cliente =:id_cliente, data_acquisto =:data_acquisto, totale =:totale, stato =:stato";
+
+     $stmt = $this->conn->prepare($query);
 
      $this->id_cliente = htmlspecialchars(strip_tags($this->id_cliente));
      $this->data_acquisto = htmlspecialchars(strip_tags($this->data_acquisto));
      $this->totale = htmlspecialchars(strip_tags($this->totale));
+     $this->stato = (int)($this->stato);
 
      $stmt->bindParam(":id_cliente", $this->id_cliente);
      $stmt->bindParam(":data_acquisto", $this->data_acquisto);
      $stmt->bindParam(":totale", $this->totale);
+     $stmt->bindParam(":stato", $this->stato);
 
      // Esecuzione
           if($stmt->execute()){
@@ -43,7 +55,7 @@ class Fattura{
   }
 
   function read(){
-    $query = "SELECT u.nome, u.cognome, f.id_fattura, f.id_cliente ,f.data_acquisto, f.totale 
+    $query = "SELECT u.nome, u.cognome, f.id_fattura, f.id_cliente ,f.data_acquisto, f.totale, f.stato 
               FROM ".$this->table_name. " AS f 
               INNER JOIN utente u 
               ON f.id_cliente = u.id_utente
@@ -55,6 +67,10 @@ class Fattura{
     $stmt->execute();
 
     return $stmt;
+
+  }
+
+  function update(){
 
   }
 
