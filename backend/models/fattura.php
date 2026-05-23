@@ -88,6 +88,32 @@ class Fattura{
     return $stmt->execute();
 }
 
+  function delete(){
+
+    $query = "DELETE FROM " . $this->table_name . " WHERE id_fattura = :id_fattura";
+
+    $stmt = $this->conn->prepare($query);
+
+    $this->id_fattura = htmlspecialchars(strip_tags($this->id_fattura));
+
+    $stmt->bindParam(":id_fattura", $this->id_fattura);
+
+    // Esecuzione
+    if($stmt->execute()) {
+        
+        /*La execute() restituirebbe TRUE anche se non ci fosse nulla da eliminare. Andando a fare un controllo
+        sul numero delle righe trovate posso assicurarmi che la function delete() restituisca true solo se effettivamente
+        è stata trovata la riga da cancellare.*/
+        
+        if($stmt->rowCount() > 0) {
+            return true;
+        }
+    }
+  
+    return false;
+
+}
+
   
 
 }
