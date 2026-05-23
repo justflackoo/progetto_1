@@ -82,6 +82,40 @@ class Dettaglio_Fattura{
       }
 
     }
+
+   // Metodo per leggere i dettagli di una specifica fattura
+    function read(){
+        
+        // Creiamo una query complessa con delle INNER JOIN per recuperare il nome del giocatore e la taglia
+        $query = "SELECT 
+                    df.id_dettaglio,
+                    df.id_fattura,
+                    df.id_giacenza,
+                    c.id_canotta,
+                    t.id_taglia,
+                    c.giocatore,
+                    c.squadra,
+                    t.nome_taglia,
+                    df.quantita_acquistata,
+                    df.prezzo_unitario_acquisto,
+                    (df.quantita_acquistata * df.prezzo_unitario_acquisto) AS sub_totale
+                  FROM " . $this->table_name . " df
+                  INNER JOIN magazzino m ON df.id_giacenza = m.id_giacenza
+                  INNER JOIN canotta c ON m.id_canotta = c.id_canotta
+                  INNER JOIN tabella_taglie t ON m.id_taglia = t.id_taglia
+                  WHERE df.id_fattura = :id_fattura";
+
+        $stmt = $this->conn->prepare($query);
+
+        //Sanitizzazione dell'id della fattura ricevuta in input
+        $this->id_fattura = htmlspecialchars(strip_tags($this->id_fattura));
+
+        $stmt->bindParam(":id_fattura", $this->id_fattura);
+
+        $stmt->execute();
+
+        return $stmt;
+    }
 }
 
 ?>
