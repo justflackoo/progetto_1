@@ -31,7 +31,7 @@ class Ruolo{
   function update(){
     $query = "UPDATE " . $this->table_name . "SET nome_ruolo = nome_ruolo WHERE id_ruolo = id_ruolo";
 
-    $stmt = $this->conm->prepare($query);
+    $stmt = $this->conn->prepare($query);
 
     $this->id_ruolo = htmlspecialchars(strip_tags($this->id_ruolo));
     $this->nome_ruolo = htmlspecialchars(strip_tags($this->nome_ruolo));
@@ -64,10 +64,10 @@ class Ruolo{
     $stmt = $this->conn->prepare($query);
 
      //Sanitizzazione
-    $this->id_taglia = htmlspecialchars(strip_tags($this->id_taglia));
+    $this->id_ruolo = htmlspecialchars(strip_tags($this->id_ruolo));
 
     //Binding dell' ID
-    $stmt->bindParam(":id_taglia", $this->id_taglia);
+    $stmt->bindParam(":id_ruolo", $this->id_ruolo);
 
     if ($stmt->execute()) {
         return true;
