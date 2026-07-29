@@ -103,7 +103,7 @@ class Dettaglio_Fattura{
                   INNER JOIN magazzino m ON df.id_giacenza = m.id_giacenza
                   INNER JOIN canotta c ON m.id_canotta = c.id_canotta
                   INNER JOIN tabella_taglie t ON m.id_taglia = t.id_taglia
-                  WHERE df.id_fattura = :id_fattura";
+                  WHERE df.id_fattura = :id_fattura AND df.is_annullato = 0";
 
         $stmt = $this->conn->prepare($query);
 
@@ -115,6 +115,77 @@ class Dettaglio_Fattura{
         $stmt->execute();
 
         return $stmt;
+    }
+
+  //Fattura e scontrino li considero sinonimi
+  //La funzione delete in questo caso non elimina un elemento ma l'opposto. Se un utente elimina l'elemento dal proprio scontrino, lo stesso
+  //elemento dovrà fare il percorso inverso, cioè ritornare nel magazzino.
+  //In particolare delete() si rivolge ad una singola riga all'interno della fattura, 
+  // così posso fare il reso di parte dello scontrino (e non necessariamente l'intero scontrino)
+    function delete(){
+        try{
+            $this->conn->beginTransaction(); //"Bloccco" il DB, le modifiche non sono aggiornate finchè non faccio commit
+
+            //Vado a leggere lo scontrino contenente tutti gli elementi
+            $query_info = "SELECT id_giacenza, quantita_acquistata 
+                           FROM " . $this->table_name . " 
+                           WHERE id_dettaglio = :id_dettaglio AND is_annullato = 0"; 
+
+              //Ho aggiunto un WHERE is_annullato = 0 perchè se un ordine è stato precedentemente annullato la colonna is_annullato varrebbe 1
+
+            $stmt_info = $this->conn->prepare($query_info);
+
+            $this->id_dettaglio = htmlspecialchars(strip_tags($this->id_dettaglio));
+
+            $stmt_info->bindParam(":id_dettaglio", $this->id_dettaglio);
+
+            $stmt_info->execute();
+
+            if($stmt_info->rowCount() == 0){ //Se non trovo risultati, la riga non esiste o è già stata annullata in precedenza. Blocco l'operazione.
+                $this->conn->rollBack();
+                return false;
+            }
+
+            //Trasformo la riga appena trovata in un array associativo così che possa leggere il contenuto dei vari campi
+            $row = $stmt_info->fetch(PDO::FETCH_ASSOC);
+
+            $id_giacenza_da_ripristinare = $row['id_giacenza'];
+            $quantita_da_ripristinare = $row['quantita_acquistata'];
+
+
+            //Ora per l'elemento preciso all'interno di dettaglio_fattura setto is_annullato = 1 
+            $query_delete = "UPDATE " . $this->table_name . " 
+                             SET is_annullato = 1 
+                             WHERE id_dettaglio = :id_dettaglio";
+            
+            $stmt_delete = $this->conn->prepare($query_delete);
+            $stmt_delete->bindParam(":id_dettaglio", $this->id_dettaglio);
+            $stmt_delete->execute();
+
+
+            //Quantita da ripristinare contiene la quantita di elementi che l'utente ha annullato, li riaggiungo al magazzino
+            //id_giacenza identifica un preciso incrocio giocatore-taglia
+            $query_update = "UPDATE magazzino 
+                             SET quantita_disponibile = quantita_disponibile + :quantita_da_ripristinare 
+                             WHERE id_giacenza = :id_giacenza";
+            
+            $stmt_update = $this->conn->prepare($query_update);
+            $stmt_update->bindParam(":quantita_da_ripristinare", $quantita_da_ripristinare);
+            $stmt_update->bindParam(":id_giacenza", $id_giacenza_da_ripristinare);
+            $stmt_update->execute();
+
+            // 5. Entrambe le operazioni sono andate a buon fine: salvo definitivamente!
+            $this->conn->commit();
+            return true;
+
+
+
+
+        }catch(Exception $e){ //Entro in questo blocco se c'è stato qualche problema nel try
+            $this->conn->rollBack();
+            return false;
+        }
+
     }
 }
 
